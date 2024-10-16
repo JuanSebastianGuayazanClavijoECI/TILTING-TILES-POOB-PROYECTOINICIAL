@@ -13,13 +13,15 @@ public class Puzzle {
     private Tile[][] endingConfig;
     private Rectangle boardA;
     private Rectangle boardB;
-    private char[][] configurationChar;
     private boolean[][] glueMap;
+    private Canvas canvas;
+    private boolean[][] holeMap;
 
     /**
      * Constructor 1. Create a puzzle of size h x w
      */
     public Puzzle(int h, int w){
+        this.canvas = Canvas.getCanvas(); // Obtener la instancia de Canvas
         this.height = h;
         this.width = w;
         // Creacion de tablero
@@ -32,18 +34,11 @@ public class Puzzle {
         this.startingConfig = new Tile[height][width];
         for (int i = 0; i < h; i++) {
             for (int j = 0; j < w; j++) {
-                this.startingConfig[i][j] = new Tile('.', j*25, i*25);
+                this.startingConfig[i][j] = new Tile("black", j*25, i*25);
             }
         }
         // Mapa de pegamento
         this.glueMap = new boolean[h][w];
-        // Mapa char color
-        this.configurationChar = new char[h][w];
-        for (int i = 0; i < h; i++) {
-            for (int j = 0; j < w; j++) {
-                this.configurationChar[i][j] = '.'; 
-            }
-        }
     }
 
     /**
@@ -51,28 +46,70 @@ public class Puzzle {
      */
     public Puzzle(char[][] ending){
         // Creacion del tablero
-        this.endingConfig = new Tile[height][width];
         this.boardB = new Rectangle();
-        this.boardB.changeSize(5 +(25 * this.height), +(5 * this.width));
-        this.boardB.moveVertical(5 + this.boardA.getWidth());
+        this.boardB.changeSize(5 +(25 * ending.length), 5 + (25 * ending[0].length));
+        this.boardB.moveVertical(-5);
         this.boardB.moveHorizontal(-5);
         this.boardB.makeVisible();
         // Matriz de Tiles
-        this.endingConfig = new Tile[height][width];
+        this.endingConfig = new Tile[ending.length][ending[0].length];
+        for (int i = 0; i < ending.length; i++) {
+            for (int j = 0; j < ending[0].length; j++) {
+                String color;
+                switch (ending[i][j]) {
+                    case 'r': color = "red"; break;
+                    case 'g': color = "green"; break;
+                    case 'b': color = "blue"; break;
+                    case 'y': color = "yellow"; break;
+                    case '.': color = "black"; break;
+                    default: color = "black";
+                }
+                this.endingConfig[i][j] = new Tile(color, j*25, i*25);
+            }
+        }
     }
 
     /**
      * Constructor 3. Create a puzzle with the initial and final configuration
      */
-    public Puzzle(char[][] starting, char[][] ending){
-        if (starting.length != ending.length || starting[0].length != ending[0].length){
+    public Puzzle(char[][] starting, char[][] ending) {
+        // Verificar que ambas matrices tienen el mismo tamaño
+        if (starting.length != ending.length || starting[0].length != ending[0].length) {
             throw new IllegalArgumentException("Las matrices de inicio y final deben tener el mismo tamaño.");
         }
         else{
-            this.height = starting.length;
-            this.width = starting[0].length;
-            Puzzle(this.height, this.height);
-            Puzzle(ending);
+            this.startingConfig = new Tile[starting.length][starting[0].length];
+            this.endingConfig = new Tile[ending.length][ending[0].length];
+            // Tablero Inicial
+            for (int i = 0; i < starting.length; i++) {
+                for (int j = 0; j < starting[0].length; j++) {
+                    String color;
+                    switch (starting[i][j]) {
+                        case 'r': color = "red";
+                        case 'g': color = "green";
+                        case 'b': color = "blue";
+                        case 'y': color = "yellow";
+                        case '.': color = "black";
+                        default: color = "black"; break;
+                    }
+                    this.startingConfig[i][j] = new Tile(color, j * 25, i * 25);
+                }
+            }
+            // Tablero Final
+            for (int i = 0; i < ending.length; i++) {
+                for (int j = 0; j < ending[0].length; j++) {
+                    String color;
+                    switch (ending[i][j]) {
+                        case 'r': color = "red";
+                        case 'g': color = "green";
+                        case 'b': color = "blue";
+                        case 'y': color = "yellow";
+                        case '.': color = "black";
+                        default: color = "black"; break;
+                    }
+                    this.endingConfig[i][j] = new Tile(color, (starting[0].length * 25 + 50) + j * 25, i * 25);
+                }
+            }
         }
     }
 
@@ -83,13 +120,16 @@ public class Puzzle {
      * @param column
      * @param color
      */
-    public  void addTile (int row, int column, String color)
-    {
-        if (startingConfig[row][column].getColor().equals("black")){
+    public void addTile(int row, int column, String color) {
+        // Validar que row y column están dentro de los límites de la matriz
+        if (row < 0 || row >= startingConfig.length || column < 0 || column >= startingConfig[0].length) {
+            throw new IndexOutOfBoundsException("Índice fuera de los límites de la matriz.");
+        }
+        // Comprobar el color de la ficha en la posición dada
+        if (startingConfig[row][column].getColor().equals("black")) {
             startingConfig[row][column].setColor(color);
             ok();
-        }
-        else{
+        } else {
             throw new IllegalArgumentException("Ya existe una ficha en el lugar");
         }
     }
@@ -100,13 +140,16 @@ public class Puzzle {
      * @param   row 
      * @param   column
      */
-    public void deleteTile(int row, int column)
-    {
-        if (!startingConfig[row][column].getColor().equals("black")){
+    public void deleteTile(int row, int column) {
+        // Validar que row y column están dentro de los límites de la matriz
+        if (row < 0 || row >= startingConfig.length || column < 0 || column >= startingConfig[0].length) {
+            throw new IndexOutOfBoundsException("Índice fuera de los límites de la matriz.");
+        }
+        // Comprobar el color de la ficha en la posición dada
+        if (!startingConfig[row][column].getColor().equals("black")) {
             startingConfig[row][column].setColor("black");
             ok();
-        }
-        else{
+        } else {
             throw new IllegalArgumentException("No existe una ficha en el lugar");
         }
     }
@@ -117,28 +160,31 @@ public class Puzzle {
      * @param   row 
      * @param   column
      */
-    public void relocateTile(int[] from,int[] to)
-    {
+    public void relocateTile(int[] from, int[] to) {
         int fromRow = from[0], fromCol = from[1];
         int toRow = to[0], toCol = to[1];
-        if(from.length == 2 && to.length == 2){
-            if(startingConfig[fromRow][fromCol].getColor().equals("black")){
+        // Verificar que los índices estén dentro de los límites de la matriz
+        if (fromRow >= 0 && fromRow < height && fromCol >= 0 && fromCol < width && toRow >= 0 && toRow < height && toCol >= 0 && toCol < width) {
+            if (startingConfig[fromRow][fromCol].getColor().equals("black")) {
                 throw new IllegalArgumentException("No existe una ficha en el lugar");
             }
-            else if(!startingConfig[toRow][toCol].getColor().equals("black")){
+            else if (!startingConfig[toRow][toCol].getColor().equals("black")) {
                 throw new IllegalArgumentException("Ya existe una ficha en el espacio a cambiar");
             }
             else{
-                if(glueMap[fromRow][fromCol]){
-
-                }
-                else{
-                    addTile(toRow, toCol, startingConfig[fromRow][fromCol].getColor());
-                    deleteTile(from[0], from[1]);
-                }
+                // Realizar el movimiento de la ficha
+                addTile(toRow, toCol, startingConfig[fromRow][fromCol].getColor());
+                deleteTile(from[0], from[1]);
+                // Cambios en el mapa de pegamento
+                glueMap[fromRow][fromCol] = false;
+                glueMap[toRow][toCol] = true;    
             }
         }
+        else {
+            throw new IllegalArgumentException("Índices fuera de los límites de la matriz");
+        }
     }
+
 
     /**
      * Add the glue from the specific tile
@@ -177,6 +223,197 @@ public class Puzzle {
     }
 
     /**
+     * An example of a method - replace this comment with your own
+     *
+     * @param  y   a sample parameter for a method
+     * @return     the sum of x and y
+     */
+    public void makeHole(int row, int column)
+    {
+        // put your code here
+
+    }
+
+    /**
+     * Calculates the number of consecutive tiles to the right of a specified position in the puzzle that are glued together.
+     *
+     * @param row    The row index of the starting tile.
+     * @param column The column index of the starting tile.
+     * @return     The number of consecutive glued tiles to the right of the specified tile.
+     */
+    public int gluedGroupRight(int row, int column)
+    {
+        int tiles = column;
+        int gluedTiles = 0;
+        while (tiles < this.width){
+            if (glueMap[row][tiles] || (tiles + 1 < this.width && glueMap[row][tiles + 1])){// Verifica si la ficha actual tiene pegamento o si la siguiente también tiene pegamento
+                gluedTiles ++;
+                tiles++;
+            }
+            else{ //No hay ficha siguiente o ninguna de las dos tiene pegamento (no estan pegada)
+                break;
+            }
+        }
+        System.out.print((gluedTiles));
+        return gluedTiles;
+    }
+
+    /**
+     * Checks if a group of glued tiles at the given position can move upwards
+     *
+     * @param row    The row index of the starting tile.
+     * @param column The column index of the starting tile
+     * @return     true if the group of glued tiles can move upwards, false otherwise
+     */
+    public boolean groupCanMoveUp(int row, int column)
+    {
+        int gluedCount = gluedGroupRight(row, column);
+        // Verificar que el grupo de fichas pegadas no se salga de los límites
+        for (int i = 0; i < gluedCount; i++) {
+            // Comprobar si hay espacio arriba de cada ficha pegada
+            if (row - 1 < 0 || !startingConfig[row - 1][column + i].getColor().equals("black")) {
+                return false; // Hay una ficha arriba o está fuera de límites
+            }
+        }
+        return true; // Puede mover hacia arriba
+    }
+    
+    /**
+     * Calculates the number of consecutive tiles to the down of a specified position in the puzzle that are glued together.
+     *
+     * @param row    The row index of the starting tile.
+     * @param column The column index of the starting tile.
+     * @return     The number of consecutive glued tiles to the down of the specified tile.
+     */
+    public int gluedGroupDown(int row, int column)
+    {
+        int tiles = row;
+        int gluedTiles = 0;
+        while (tiles < this.height) {
+            // Verifica si la ficha actual tiene pegamento o si la siguiente también tiene pegamento
+            if (glueMap[tiles][column]) { // La ficha actual tiene pegamento
+                gluedTiles++; 
+                tiles++;
+            } else if (tiles + 1 < this.height && glueMap[tiles + 1][column]) { // Verifica si la siguiente tiene pegamento
+                gluedTiles++;
+                tiles++;
+            } else { // Si ninguna tiene pegamento
+                break;
+            }
+        }
+        return gluedTiles;
+    }
+
+    /**
+     * Checks if a group of glued tiles at the given position can move upwards
+     *
+     * @param row    The row index of the starting tile.
+     * @param column The column index of the starting tile
+     * @return     true if the group of glued tiles can move upwards, false otherwise
+     */
+    /*public boolean groupCanMoveUp(int row, int column)
+    {
+        int gluedCount = gluedGroupRight(row, column);
+        // Verificar que el grupo de fichas pegadas no se salga de los límites
+        for (int i = 0; i < gluedCount; i++) {
+            // Comprobar si hay espacio arriba de cada ficha pegada
+            if (!startingConfig[row - 1][column + i].getColor().equals("black")) {
+                return false; // Hay una ficha arriba o está fuera de límites
+            }
+        }
+        return true; // Puede mover hacia arriba
+    }*/
+    
+    /**
+     * Calculates the number of consecutive tiles to the up of a specified position in the puzzle that are glued together.
+     *
+     * @param row    The row index of the starting tile.
+     * @param column The column index of the starting tile.
+     * @return     The number of consecutive glued tiles to the up of the specified tile.
+     */
+    public int gluedGroupUp(int row, int column)
+    {
+        int tiles = row;
+        int gluedTiles = 0;
+        while (tiles >= 0) {
+            // Verifica si la ficha actual tiene pegamento o si la siguiente también tiene pegamento
+            if (glueMap[tiles][column]) { // La ficha actual tiene pegamento
+                gluedTiles++; 
+                tiles--;
+            } else if (tiles - 1 > 0 && glueMap[tiles - 1][column]) { // Verifica si la siguiente tiene pegamento
+                gluedTiles++;
+                tiles--;
+            } else { // Si ninguna tiene pegamento
+                break;
+            }
+        }
+        return gluedTiles;
+    }
+
+    /**
+     * Checks if a group of glued tiles at the given position can move upwards
+     *
+     * @param row    The row index of the starting tile.
+     * @param column The column index of the starting tile
+     * @return     true if the group of glued tiles can move upwards, false otherwise
+     */
+    /*public boolean groupCanMoveLeft(int row, int column)
+    {
+        int gluedCount = gluedGroupRight(row, column);
+        // Verificar que el grupo de fichas pegadas no se salga de los límites
+        for (int i = 0; i < gluedCount; i++) {
+            // Comprobar si hay espacio arriba de cada ficha pegada
+            if (!startingConfig[row - 1][column + i].getColor().equals("black")) {
+                return false; // Hay una ficha arriba o está fuera de límites
+            }
+        }
+        return true; // Puede mover hacia arriba
+    }*/
+    
+    /**
+     * Calculates the number of consecutive tiles to the left of a specified position in the puzzle that are glued together.
+     *
+     * @param row    The row index of the starting tile.
+     * @param column The column index of the starting tile.
+     * @return     The number of consecutive glued tiles to the left of the specified tile.
+     */
+    public int gluedGroupLeft(int row, int column)
+    {
+        int tiles = column;
+        int gluedTiles = 0;
+        while (tiles > 0){
+            if (glueMap[row][tiles] || (tiles - 1 >= 0 && glueMap[row][tiles - 1])){// Verifica si la ficha actual tiene pegamento o si la siguiente también tiene pegamento
+                gluedTiles ++;
+                tiles--;
+            }
+            else{ //No hay ficha siguiente o ninguna de las dos tiene pegamento (no estan pegada)
+                break;
+            }
+        }
+        return gluedTiles;
+    }
+
+    /**
+     * Checks if a group of glued tiles at the given position can move upwards
+     *
+     * @param row    The row index of the starting tile.
+     * @param column The column index of the starting tile
+     * @return     true if the group of glued tiles can move upwards, false otherwise
+     */
+    /*public boolean groupCanMoveUp(int row, int column)
+    {
+        int gluedCount = gluedGroupRight(row, column);
+        // Verificar que el grupo de fichas pegadas no se salga de los límites
+        for (int i = 0; i < gluedCount; i++) {
+            // Comprobar si hay espacio arriba de cada ficha pegada
+            if (!startingConfig[row - 1][column + i].getColor().equals("black")) {
+                return false; // Hay una ficha arriba o está fuera de límites
+            }
+        }
+        return true; // Puede mover hacia arriba
+    }*/
+    
+    /**
      * Tilt of the board
      *
      * @param  direction
@@ -185,83 +422,31 @@ public class Puzzle {
     {
         //Up
         if (direction == 'u'){
-            for (int row = 0; row < height; row++) {
-                for (int column = 1; column < width; column++) {
-                    if(!startingConfig[row][column].getColor().equals("black")){
-                        if(glueMap[row][column]){
-                            if(!startingConfig[row][column+1].getColor().equals("black")){
-                                if(!startingConfig[row-1][column+1].getColor().equals("black")){
-                                    continue;
-                                }
-                                else if(!startingConfig[row-1][column].getColor().equals("black")){
-                                    continue;
-                                }
-                                else{
-                                    
-                                    int[] from = {row, column};
-                                    int[] to = {row - 1, column};
+            for (int row = 1; row < height; row++) {
+                for (int column = 0; column < width; column++) { 
+                    if(!startingConfig[row][column].getColor().equals("black")){ // Existe ficha
+                        int group = gluedGroupRight(row, column);
+                        int rowMove = row;
+                        if (group > 0){ //Evalua si hay Tiles pegados
+                            while (groupCanMoveUp(rowMove, column)){
+                                for(int i = 0; i <= group; i++){
+                                    int[] from = {rowMove , column + i};
+                                    int[] to = {rowMove - 1, column + i};
                                     relocateTile(from, to);
                                 }
+                                rowMove--;
                             }
-                            else{
-                                if(!startingConfig[row][column].getColor().equals("black")){
-                                    continue;
-                                }
-                                else{
-                                    int[] from = {row, column};
-                                    int[] to = {row - 1, column};
-                                    relocateTile(from, to);
-                                }
-                            }
-                        }
-                        else if(glueMap[row][column+1]){
-                            if(!startingConfig[row][column+2].getColor().equals("black")){
-                                if(!startingConfig[row-1][column].getColor().equals("black")){
-                                    continue;
-                                }
-                                else if(!startingConfig[row-1][column-1].getColor().equals("black")){
-                                    continue;
-                                }
-                                else if(!startingConfig[row-1][column-2].getColor().equals("black")){
-                                    continue;
-                                }
-                                else{
-                                    
-                                    
-                                    int[] from = {row, column};
-                                    int[] to = {row - 1, column};
-                                    relocateTile(from, to);
-                                }
-                            }
-                            else{
-                                if(!startingConfig[row][column].getColor().equals("black")){
-                                    continue;
-                                }
-                                else if(!startingConfig[row][column+1].getColor().equals("black")){
-                                    continue;
-                                }
-                                else{
-                                    
-                                    int[] from = {row, column};
-                                    int[] to = {row - 1, column};
-                                    relocateTile(from, to);
-                                }
-                            }
+                            column = column + (group - 1);
                         }
                         else{
-                            if(!startingConfig[row-1][column].getColor().equals("black")){
-                                continue;
-                            }
-                            else{
-                                int[] from = {row, column};
-                                int[] to = {row - 1, column};
-                                relocateTile(from, to); 
+                            while(rowMove > 0 && startingConfig[rowMove - 1][column].getColor().equals("black")){
+                                int[] from = {rowMove, column};
+                                int[] to = {rowMove - 1, column};
+                                relocateTile(from, to);
+                                rowMove--;
                             }
                         }
-                    }
-                    else{
-                        continue;
-                    }  
+                    } 
                 }
             }
             ok();
@@ -270,33 +455,16 @@ public class Puzzle {
         else if (direction == 'd') {
             for (int row = height - 2; row >= 0; row--) {  // Empezar desde la penúltima fila
                 for (int column = 0; column < width; column++) {
-                    int[] from = {row, column};
-                    int[] to = {row + 1, column};
-                    if(verificationGluedTogether(row, column)[0] && verificationGluedTogether(row, column)[1]){
-
-                    }
-                    else{
-                        if(){
-
-                        }
-                        else if(){
-
-                        }
-                        else{
-                            relocateTile(from, to);
-                        }
-                    }
+                    
                 }
-            }
+            }  
             ok();
         }
         // Right (hacia la derecha)
         else if (direction == 'r') {
             for (int row = 0; row < height; row++) {
                 for (int column = width - 2; column >= 0; column--) {  // Empezar desde la penúltima columna
-                    int[] from = {row, column};
-                    int[] to = {row, column + 1};
-                    relocateTile(from, to);
+                    
                 }
             }
             ok();
@@ -305,9 +473,7 @@ public class Puzzle {
         else if(direction == 'l'){
             for(int row = 0; row < height; row++){
                 for (int column = 0; column < width; column++){
-                    int[] from = {row, column};
-                    int[] to = {row, column + 1};
-                    relocateTile(from, to);
+                    
                 }
             }
             ok();
@@ -315,6 +481,30 @@ public class Puzzle {
         else{
             throw new IllegalArgumentException("Marcacion errada");
         }
+    }
+
+    /**
+     * An example of a method - replace this comment with your own
+     *
+     * @param  y   a sample parameter for a method
+     * @return     the sum of x and y
+     */
+    public void tild()
+    {
+        // put your code here
+
+    }
+
+    /**
+     * An example of a method - replace this comment with your own
+     *
+     * @param  y   a sample parameter for a method
+     * @return     the sum of x and y
+     */
+    public void exchange()
+    {
+        // put your code here
+
     }
 
     /**
@@ -339,9 +529,46 @@ public class Puzzle {
      *
      * @return
      */
-    /*public char[][] actualArrangement()
+    public char[][] actualArrangement()
     {
+        char[][] configurationChar = new char[startingConfig.length][startingConfig[0].length];
+        for (int row = 0; row < startingConfig.length; row++) {
+            for (int column = 0; column < startingConfig[row].length; column++) {
+                // Obtener el color en formato char y asignarlo a la nueva matriz
+                configurationChar[row][column] = startingConfig[row][column].getColorChar();
+            }
+        }
+        for (int row = 0; row < configurationChar.length; row++) {
+            for (int column = 0; column < configurationChar[row].length; column++) {
+                System.out.print(configurationChar[row][column] + " ");
+            }
+            System.out.println();
+        }
+        return configurationChar;
+    }
 
+    /**
+     * An example of a method - replace this comment with your own
+     *
+     * @param  y   a sample parameter for a method
+     * @return     the sum of x and y
+     */
+    /*public int[][] fixedTiles()
+    {
+    // put your code here
+    return y;
+    }*/
+
+    /**
+     * An example of a method - replace this comment with your own
+     *
+     * @param  y   a sample parameter for a method
+     * @return     the sum of x and y
+     */
+    /*public int missPlacedTiles()
+    {
+    // put your code here
+    return y;
     }*/
 
     /**
@@ -392,6 +619,7 @@ public class Puzzle {
     public void finish()
     {
         System.out.println("Fin del simulador");
+        canvas.setVisible(false);
     }
 
     /**
@@ -401,78 +629,6 @@ public class Puzzle {
     public boolean ok()
     {
         return true; 
-    }
-
-    /**
-     * An example of a method - replace this comment with your own
-     *
-     * @param  x   
-     * @param  y
-     * @return     existence of pieces glued in adjacent positions in left, right, up, down order
-     */
-    public boolean[] verificationGluedTogether(int x, int y)
-    {
-        boolean[] verification = new boolean[4];
-        if((x-1) >= 0){
-            if (!startingConfig[x-1][y].getColor().equals("black")){
-                verification[0] = true;
-            }
-        }
-        if((x+1) <= height){
-            if (!startingConfig[x+1][y].getColor().equals("black")){
-                verification[1] = true;
-            }
-        }
-        if((y-1) >= 0){
-            if (!startingConfig[x][y-1].getColor().equals("black")){
-                verification[2] = true;   
-            }
-        }
-        if((y+1) <= width){
-            if (!startingConfig[x][y+1].getColor().equals("black")){
-                verification[3] = true; 
-            }
-        }
-    }
-
-    /**
-     * An example of a method - replace this comment with your own
-     *
-     * @param  y   a sample parameter for a method
-     * @return     the sum of x and y
-     */
-    public boolean[] verificationNextHasGlued(int x, int y)
-    {
-        boolean[] verificationNext = new boolean[4];
-        if((x-1) >= 0){
-            if (!startingConfig[x-1][y].getColor().equals("black")){
-                if(glueMap[x-1][y]){
-                    verificationNext[0] = true;
-                }
-            }
-        }
-        if((x+1) <= height){
-            if (!startingConfig[x+1][y].getColor().equals("black")){
-                if(glueMap[x+1][y]){
-                    verificationNext[0] = true;
-                }
-            }
-        }
-        if((y-1) >= 0){
-            if (!startingConfig[x][y-1].getColor().equals("black")){
-                if(glueMap[x][y-1]){
-                    verificationNext[0] = true;
-                }   
-            }
-        }
-        if((y+1) <= width){
-            if (!startingConfig[x][y+1].getColor().equals("black")){
-                if(glueMap[x][y+1]){
-                    verificationNext[0] = true;
-                }
-            }
-        }
-        return verificationNext;
     }
 
 }
