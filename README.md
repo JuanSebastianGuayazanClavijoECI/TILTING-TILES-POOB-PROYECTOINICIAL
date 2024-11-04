@@ -1,4 +1,4 @@
-#PROYECTO INICIAL  
+# PROYECTO INICIAL  
 LINA JANETH SANCHEZ FORERO y JUAN SEBASTIÁN GUAYAZÁN CLAVIJO  
 Programación Orientada a Objetos (ISIS POOB-201)   
 Decanatura Ingeniería de Sistemas → Centro de Estudios de Ingeniería de Software    
